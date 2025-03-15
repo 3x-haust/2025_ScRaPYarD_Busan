@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import requests
+import re
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
@@ -32,17 +33,36 @@ class ChatMessage(db.Model):
             "session_id": self.session_id
         }
 
-def generate_excuse(situation: str) -> str:
-    prompt = f"""
-다음 상황에 대해 상상력이 넘치고 엉뚱하며, 웃음을 자아내는 재치있는 변명을 만들어줘.
-변명이 너무 길어서는 안돼.
+def is_english(text: str) -> bool:
+    """
+    간단한 정규식으로 영어 단어가 어느 정도 있으면 영어라고 추정.
+    100글자 중 50글자 이상이 알파벳이면 영어라고 가정 (데모 목적).
+    """
+    letters = re.findall(r"[a-zA-Z]", text)
+    return len(letters) > (len(text) / 2)
 
-예시)
-Q: 학교에 지각했을 때, 선생님께 뭐라고 해야 해?
-A: 코끼리가 집 문을 막고 있어서, 밀고 나오느라 늦었어요.
+def generate_excuse(situation: str) -> str:
+    """
+    상황이 영어이면 영어로, 한국어이면 한국어로 짧은 변명 생성.
+    """
+    user_lang_is_english = is_english(situation)
+
+    if user_lang_is_english:
+        prompt = f"""
+We have a user who wrote their situation in English. 
+Please respond in English with a short, whimsical, and creative excuse for that situation.
+The excuse should not be too long.
+
+Situation: {situation}
+"""
+    else:
+        prompt = f"""
+사용자가 한국어로 상황을 입력했습니다.
+짧고 재치있는 변명을 만들어주세요. 너무 길면 안됩니다.
 
 상황: {situation}
 """
+
     payload = {
         "contents": [{
             "parts": [{"text": prompt}]
@@ -50,7 +70,11 @@ A: 코끼리가 집 문을 막고 있어서, 밀고 나오느라 늦었어요.
     }
     headers = {"Content-Type": "application/json"}
     try:
-        response = requests.post(f"{GEMINI_API_URL}?key={API_KEY}", json=payload, headers=headers)
+        response = requests.post(
+            f"{GEMINI_API_URL}?key={API_KEY}",
+            json=payload,
+            headers=headers
+        )
         response.raise_for_status()
         data = response.json()
         candidates = data.get("candidates")

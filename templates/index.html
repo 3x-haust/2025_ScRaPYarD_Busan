@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>변명 챗봇 (Dark Mode)</title>
+  <title>변명 챗봇 (Bilingual)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Pretendard 폰트 -->
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,7 +38,6 @@
     .bubble { background-color: #444654; color: #fff; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; white-space: pre-wrap; }
     .message.user .bubble { background-color: #444654; }
     
-
     .code-bubble { background-color: #2f2f3a !important; padding: 0 !important; }
     .code-bubble pre { margin: 0; padding: 12px 16px; overflow-x: auto; font-family: "Fira Code", monospace; font-size: 13px; color: #fff; background: transparent; }
     .code-bubble code { background: transparent; color: #fff; }
@@ -58,9 +58,9 @@
 <body>
   <div class="sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-title">Execuse</span>
+      <span class="sidebar-title" id="sidebarTitle">변명 챗봇</span>
     </div>
-    <button class="new-chat" onclick="location.href='/new_chat'">+ 새 채팅</button>
+    <button class="new-chat" onclick="location.href='/new_chat'" id="newChatBtn">+ 새 채팅</button>
     <div class="chat-history">
       {% for s in sessions %}
       <div class="chat-item" onclick="location.href='/?session_id={{ s.id }}'">
@@ -72,7 +72,12 @@
   
   <div class="main">
     <div class="chat-header">
-      <div class="chat-header-title">변명 챗봇</div>
+      <div class="chat-header-title" id="headerTitle">변명 챗봇</div>
+      <!-- 언어 토글 버튼 -->
+      <div>
+        <button onclick="setLanguage('ko')">한국어</button>
+        <button onclick="setLanguage('en')">English</button>
+      </div>
     </div>
     <div class="chat-body" id="chatBody">
       {% if messages|length == 0 %}
@@ -90,13 +95,13 @@
     
     <div class="chat-input">
       <input type="text" id="situationInput" placeholder="상황을 입력해 주세요" required>
-      <button onclick="sendMessage()">
+      <button onclick="sendMessage()" id="sendBtn">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
           <path d="M22 2L11 13"></path>
           <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
         </svg>
       </button>
-      <button onclick="startRecognition()">
+      <button onclick="startRecognition()" id="voiceBtn">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
           <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"></path>
           <path d="M19 10v2a7 7 0 11-14 0v-2"></path>
@@ -110,6 +115,44 @@
     var currentSessionId = "{{ current_session_id }}";
     let recognition = null;
     
+    // 언어 상태 (기본 'ko')
+    let currentLanguage = 'ko';
+
+    // 텍스트 리소스 (한/영)
+    const textResources = {
+      ko: {
+        sidebarTitle: "변명 챗봇",
+        newChatBtn: "+ 새 채팅",
+        headerTitle: "변명 챗봇",
+        placeholder: "상황을 입력해 주세요",
+        emptyChat: "안녕하세요! 변명이 필요한 상황을 말씀해 주세요.",
+      },
+      en: {
+        sidebarTitle: "Excuse Chatbot",
+        newChatBtn: "+ New Chat",
+        headerTitle: "Excuse Chatbot",
+        placeholder: "Please enter a situation",
+        emptyChat: "Hello! Please describe the situation where you need an excuse.",
+      }
+    };
+
+    // UI 갱신
+    function updateUIByLanguage(lang) {
+      document.getElementById('sidebarTitle').textContent = textResources[lang].sidebarTitle;
+      document.getElementById('newChatBtn').textContent   = textResources[lang].newChatBtn;
+      document.getElementById('headerTitle').textContent  = textResources[lang].headerTitle;
+      document.getElementById('situationInput').placeholder = textResources[lang].placeholder;
+      const emptyChatEl = document.getElementById('emptyChat');
+      if (emptyChatEl) {
+        emptyChatEl.textContent = textResources[lang].emptyChat;
+      }
+    }
+
+    function setLanguage(lang) {
+      currentLanguage = lang;
+      updateUIByLanguage(lang);
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       const inputEl = document.getElementById('situationInput');
       inputEl.addEventListener('keydown', function(event) {
@@ -121,6 +164,9 @@
       document.getElementById('chatBody').addEventListener('click', function() {
         inputEl.focus();
       });
+      
+      // 기본은 한국어 상태로 시작
+      updateUIByLanguage('ko');
     });
     
     function addMessage(sender, text, isCode=false) {
@@ -166,7 +212,7 @@
       }
       if (recognition) recognition.stop();
       recognition = new SpeechRecognition();
-      recognition.lang = "ko-KR";
+      recognition.lang = currentLanguage === 'ko' ? "ko-KR" : "en-US";
       recognition.interimResults = false;
       recognition.continuous = false;
       let finalTranscript = "";
@@ -185,10 +231,6 @@
         console.error("음성 인식 오류:", event.error);
       };
       recognition.start();
-    }
-    
-    function newChat() {
-      location.href = "/new_chat";
     }
   </script>
 </body>
