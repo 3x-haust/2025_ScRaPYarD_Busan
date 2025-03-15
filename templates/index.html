@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>변명 생성기</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f2f2f2;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      color: #333;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007BFF;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .excuse {
+      background: #fafafa;
+      padding: 20px;
+      border-radius: 4px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      border: 1px solid #e0e0e0;
+    }
+    .status {
+      margin-top: 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>변명 생성기</h1>
+    <form method="POST" id="excuseForm">
+      <label for="situation">상황 입력 (예: 학교에 지각했을 때):</label>
+      <input type="text" id="situation" name="situation" placeholder="상황을 입력하세요" required>
+      <button type="button" onclick="startRecognition()">음성인식 시작</button>
+      <button type="submit">변명 생성</button>
+    </form>
+    <div id="status" class="status"></div>
+    {% if excuse %}
+      <div class="excuse">
+        <h2>생성된 변명:</h2>
+        <p>{{ excuse | safe }}</p>
+      </div>
+    {% endif %}
+  </div>
+  
+  <script>
+    let recognition = null;  // 전역 변수로 음성인식 객체를 선언합니다.
+    
+    function startRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const statusDiv = document.getElementById("status");
+      if (!SpeechRecognition) {
+        alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+        return;
+      }
+      
+      if (recognition) {
+        recognition.stop();
+      }
+      
+      recognition = new SpeechRecognition();
+      recognition.lang = "ko-KR";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      
+      recognition.onstart = function() {
+        statusDiv.textContent = "음성 인식 중...";
+      };
+      
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("situation").value = transcript;
+      };
+      
+      recognition.onerror = function(event) {
+        console.error("음성 인식 오류:", event.error);
+        statusDiv.textContent = "음성 인식 오류: " + event.error;
+      };
+      
+      recognition.onend = function() {
+        statusDiv.textContent = "음성 인식이 종료되었습니다.";
+      };
+      
+      recognition.start();
+    }
+    
+    function stopRecognition() {
+      const statusDiv = document.getElementById("status");
+      if (recognition) {
+        recognition.stop();
+        recognition = null;
+        statusDiv.textContent = "음성 인식이 중단되었습니다. 즉시 전송합니다.";
+      }
+      document.getElementById("excuseForm").submit();
+    }
+  </script>
+</body>
+</html>
