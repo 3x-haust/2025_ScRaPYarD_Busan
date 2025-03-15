@@ -1,8 +1,14 @@
 version: '3'
 services:
-  flask-app:
+  excuse-app:
     build: .
+    container_name: excuse_app
     ports:
       - "8443:8443"
-    environment:
-      - FLASK_ENV=development
+    volumes:
+      - .:/app
+    # 필요한 경우 환경 변수를 설정하거나 command를 수정할 수 있습니다.
+    # 예: 
+    # environment:
+    #   - FLASK_ENV=development
+    # command: ["python", "app.py"]

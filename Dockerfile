@@ -1,13 +1,15 @@
 
-FROM python:3.10-slim
+FROM python:3.9-slim
+
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 5001
+EXPOSE 8443
 
 CMD ["python", "app.py"]

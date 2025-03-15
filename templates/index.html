@@ -1,127 +1,194 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>변명 생성기</title>
+  <title>변명 챗봇 (Dark Mode)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background: #f2f2f2;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    h1, h2 {
-      color: #333;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      margin-right: 10px;
-      border: none;
-      border-radius: 4px;
-      background-color: #007BFF;
-      color: #fff;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .excuse {
-      background: #fafafa;
-      padding: 20px;
-      border-radius: 4px;
-      margin-top: 20px;
-      white-space: pre-wrap;
-      border: 1px solid #e0e0e0;
-    }
-    .status {
-      margin-top: 10px;
-      color: #555;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Pretendard', sans-serif; background-color: #1c1b1b; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+    
+    .sidebar { width: 260px; background-color: #0a0a0a; display: flex; flex-direction: column; padding: 16px; }
+    .sidebar-header { margin-bottom: 16px; }
+    .sidebar-title { font-size: 16px; font-weight: 600; }
+    .new-chat { width: 100%; background-color: #343541; border: 1px solid #8e8e8e; border-radius: 5px; color: #fff; padding: 10px; margin-bottom: 20px; cursor: pointer; text-align: left; font-size: 14px; transition: background-color 0.2s; }
+    .new-chat:hover { background-color: #4e505a; }
+    .chat-history { flex: 1; overflow-y: auto; }
+    .chat-item { background-color: #343541; border-radius: 5px; padding: 8px; margin-bottom: 8px; font-size: 14px; cursor: pointer; transition: background-color 0.2s; }
+    .chat-item:hover { background-color: #4e505a; }
+    
+    .main { flex: 1; display: flex; flex-direction: column; background-color: #2c2c2c; position: relative; }
+    .chat-header { padding: 16px; border-bottom: 1px solid #4e505a; background-color: #2c2c2c; display: flex; align-items: center; justify-content: space-between; }
+    .chat-header-title { font-size: 18px; font-weight: 600; }
+    .chat-body { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
+    .empty-chat { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: #b3b3b3; text-align: center; pointer-events: none; }
+    
+    .chat-input { border-top: 1px solid #4e505a; padding: 16px; background-color: #40414f; display: flex; align-items: center; }
+    .chat-input input[type="text"] { flex: 1; border: none; border-radius: 4px; padding: 12px; margin-right: 8px; background-color: #4e505a; color: #fff; font-size: 14px; }
+    .chat-input input[type="text"]::placeholder { color: #999; }
+    .chat-input button { border: none; border-radius: 4px; padding: 10px; background-color: #ffffff; color: #000; cursor: pointer; margin-right: 8px; transition: background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+    .chat-input button:hover { background-color: #f0f0f0; }
+    .chat-input button svg { width: 20px; height: 20px; }
+    
+    .message { display: flex; margin-bottom: 16px; font-size: 14px; line-height: 1.5; }
+    .message.user { justify-content: flex-end; }
+    .message.bot { justify-content: flex-start; }
+    .bubble { background-color: #444654; color: #fff; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; white-space: pre-wrap; }
+    .message.user .bubble { background-color: #444654; }
+    
+
+    .code-bubble { background-color: #2f2f3a !important; padding: 0 !important; }
+    .code-bubble pre { margin: 0; padding: 12px 16px; overflow-x: auto; font-family: "Fira Code", monospace; font-size: 13px; color: #fff; background: transparent; }
+    .code-bubble code { background: transparent; color: #fff; }
+    
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { width: 100%; background-color: #2c2c2c !important; }
+      body { background-color: #2c2c2c !important; }
+      .chat-header { padding: 12px; }
+      .chat-header-title { font-size: 16px; }
+      .chat-body { padding: 12px; }
+      .chat-input { padding: 12px; }
+      .chat-input input[type="text"] { padding: 10px; }
+      .chat-input button { padding: 10px; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>변명 생성기</h1>
-    <form method="POST" id="excuseForm">
-      <label for="situation">상황 입력 (예: 학교에 지각했을 때):</label>
-      <input type="text" id="situation" name="situation" placeholder="상황을 입력하세요" required>
-      <button type="button" onclick="startRecognition()">음성인식 시작</button>
-      <button type="submit">변명 생성</button>
-    </form>
-    <div id="status" class="status"></div>
-    {% if excuse %}
-      <div class="excuse">
-        <h2>생성된 변명:</h2>
-        <p>{{ excuse | safe }}</p>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Execuse</span>
+    </div>
+    <button class="new-chat" onclick="location.href='/new_chat'">+ 새 채팅</button>
+    <div class="chat-history">
+      {% for s in sessions %}
+      <div class="chat-item" onclick="location.href='/?session_id={{ s.id }}'">
+        Chat {{ s.id }}
       </div>
-    {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  
+  <div class="main">
+    <div class="chat-header">
+      <div class="chat-header-title">변명 챗봇</div>
+    </div>
+    <div class="chat-body" id="chatBody">
+      {% if messages|length == 0 %}
+      <div class="empty-chat" id="emptyChat">
+        안녕하세요! 변명이 필요한 상황을 말씀해 주세요.
+      </div>
+      {% else %}
+      {% for msg in messages %}
+      <div class="message {{ msg.sender }}">
+        <div class="bubble">{{ msg.message }}</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    
+    <div class="chat-input">
+      <input type="text" id="situationInput" placeholder="상황을 입력해 주세요" required>
+      <button onclick="sendMessage()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M22 2L11 13"></path>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+        </svg>
+      </button>
+      <button onclick="startRecognition()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"></path>
+          <path d="M19 10v2a7 7 0 11-14 0v-2"></path>
+          <path d="M12 19v4"></path>
+        </svg>
+      </button>
+    </div>
   </div>
   
   <script>
-    let recognition = null;  // 전역 변수로 음성인식 객체를 선언합니다.
+    var currentSessionId = "{{ current_session_id }}";
+    let recognition = null;
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      const inputEl = document.getElementById('situationInput');
+      inputEl.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+      document.getElementById('chatBody').addEventListener('click', function() {
+        inputEl.focus();
+      });
+    });
+    
+    function addMessage(sender, text, isCode=false) {
+      const emptyChatEl = document.getElementById('emptyChat');
+      if (emptyChatEl) emptyChatEl.remove();
+      const msgEl = document.createElement('div');
+      msgEl.classList.add('message', sender);
+      const bubbleEl = document.createElement('div');
+      bubbleEl.classList.add('bubble');
+      bubbleEl.textContent = text;
+      msgEl.appendChild(bubbleEl);
+      document.getElementById('chatBody').appendChild(msgEl);
+      const chatBody = document.getElementById('chatBody');
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+    
+    function sendMessage() {
+      const inputEl = document.getElementById('situationInput');
+      let text = inputEl.value.trim();
+      if (!text) return;
+      addMessage('user', text);
+      inputEl.value = '';
+      fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ situation: text, session_id: currentSessionId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        addMessage('bot', data.excuse);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        addMessage('bot', '오류가 발생했습니다.');
+      });
+    }
     
     function startRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const statusDiv = document.getElementById("status");
       if (!SpeechRecognition) {
         alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
         return;
       }
-      
-      if (recognition) {
-        recognition.stop();
-      }
-      
+      if (recognition) recognition.stop();
       recognition = new SpeechRecognition();
       recognition.lang = "ko-KR";
       recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      
-      recognition.onstart = function() {
-        statusDiv.textContent = "음성 인식 중...";
-      };
-      
+      recognition.continuous = false;
+      let finalTranscript = "";
       recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById("situation").value = transcript;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
       };
-      
+      recognition.onend = function() {
+        document.getElementById("situationInput").value = finalTranscript;
+        recognition = null;
+      };
       recognition.onerror = function(event) {
         console.error("음성 인식 오류:", event.error);
-        statusDiv.textContent = "음성 인식 오류: " + event.error;
       };
-      
-      recognition.onend = function() {
-        statusDiv.textContent = "음성 인식이 종료되었습니다.";
-      };
-      
       recognition.start();
     }
     
-    function stopRecognition() {
-      const statusDiv = document.getElementById("status");
-      if (recognition) {
-        recognition.stop();
-        recognition = null;
-        statusDiv.textContent = "음성 인식이 중단되었습니다. 즉시 전송합니다.";
-      }
-      document.getElementById("excuseForm").submit();
+    function newChat() {
+      location.href = "/new_chat";
     }
   </script>
 </body>
