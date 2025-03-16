@@ -1,0 +1,506 @@
+<!-- 파일명: index.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>변명 챗봇 (Bilingual + 확장)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Pretendard 폰트 -->
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Pretendard', sans-serif; background-color: #1c1b1b; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+    
+    .sidebar { width: 260px; background-color: #0a0a0a; display: flex; flex-direction: column; padding: 16px; }
+    .sidebar-header { margin-bottom: 16px; }
+    .sidebar-title { font-size: 16px; font-weight: 600; }
+    .new-chat { width: 100%; background-color: #343541; border: 1px solid #8e8e8e; border-radius: 5px; color: #fff; padding: 10px; margin-bottom: 20px; cursor: pointer; text-align: left; font-size: 14px; transition: background-color 0.2s; }
+    .new-chat:hover { background-color: #4e505a; }
+    .chat-history { flex: 1; overflow-y: auto; }
+    .chat-item { background-color: #343541; border-radius: 5px; padding: 8px; margin-bottom: 8px; font-size: 14px; cursor: pointer; transition: background-color 0.2s; }
+    .chat-item:hover { background-color: #4e505a; }
+    
+    .main { flex: 1; display: flex; flex-direction: column; background-color: #2c2c2c; position: relative; }
+    .chat-header { padding: 16px; border-bottom: 1px solid #4e505a; background-color: #2c2c2c; display: flex; align-items: center; justify-content: space-between; }
+    .chat-header-title { font-size: 18px; font-weight: 600; }
+    .chat-body { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
+    .empty-chat { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: #b3b3b3; text-align: center; pointer-events: none; }
+    
+    .chat-input { border-top: 1px solid #4e505a; padding: 16px; background-color: #40414f; display: flex; align-items: center; }
+    .chat-input input[type="text"] { flex: 1; border: none; border-radius: 4px; padding: 12px; margin-right: 8px; background-color: #4e505a; color: #fff; font-size: 14px; }
+    .chat-input input[type="text"]::placeholder { color: #999; }
+    .chat-input button { border: none; border-radius: 4px; padding: 10px; background-color: #ffffff; color: #000; cursor: pointer; margin-right: 8px; transition: background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+    .chat-input button:hover { background-color: #f0f0f0; }
+    .chat-input button svg { width: 20px; height: 20px; }
+    
+    .message { display: flex; margin-bottom: 16px; font-size: 14px; line-height: 1.5; }
+    .message.user { justify-content: flex-end; }
+    .message.bot { justify-content: flex-start; }
+    .bubble { background-color: #444654; color: #fff; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; white-space: pre-wrap; }
+    .message.user .bubble { background-color: #444654; }
+
+    /* 임시: 각 모듈 섹션 스타일 */
+    #dictionarySection, #battleSection, #challengeSection {
+      background-color: #2c2c2c;
+      padding: 16px;
+      border-top: 1px solid #4e505a;
+      display: none; /* 토글로 보이기/숨기기 */
+    }
+    .section-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+    .input-group { margin-bottom: 8px; }
+    
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { width: 100%; background-color: #2c2c2c !important; }
+      body { background-color: #2c2c2c !important; }
+      .chat-header { padding: 12px; }
+      .chat-header-title { font-size: 16px; }
+      .chat-body { padding: 12px; }
+      .chat-input { padding: 12px; }
+      .chat-input input[type="text"] { padding: 10px; }
+      .chat-input button { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 사이드바 -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title" id="sidebarTitle">변명 챗봇</span>
+    </div>
+    <button class="new-chat" onclick="location.href='/new_chat'" id="newChatBtn">+ 새 채팅</button>
+    <div class="chat-history">
+      {% for s in sessions %}
+      <div class="chat-item" onclick="location.href='/?session_id={{ s.id }}'">
+        Chat {{ s.id }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 메인 영역 -->
+  <div class="main">
+    <!-- 헤더 -->
+    <div class="chat-header">
+      <div class="chat-header-title" id="headerTitle">변명 챗봇</div>
+      <!-- 언어 토글 버튼 -->
+      <div>
+        <button onclick="setLanguage('ko')">한국어</button>
+        <button onclick="setLanguage('en')">English</button>
+        <!-- 추가 기능 토글 -->
+        <button onclick="toggleSection('dictionarySection')">사전</button>
+        <button onclick="toggleSection('battleSection')">배틀</button>
+        <button onclick="toggleSection('challengeSection')">15초 도전</button>
+      </div>
+    </div>
+
+    <!-- 채팅 영역 -->
+    <div class="chat-body" id="chatBody">
+      {% if messages|length == 0 %}
+      <div class="empty-chat" id="emptyChat">
+        안녕하세요! 변명이 필요한 상황을 말씀해 주세요.
+      </div>
+      {% else %}
+      {% for msg in messages %}
+      <div class="message {{ msg.sender }}">
+        <div class="bubble">{{ msg.message }}</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    
+    <!-- 기본 입력창 -->
+    <div class="chat-input">
+      <input type="text" id="situationInput" placeholder="상황을 입력해 주세요" required>
+      <button onclick="sendMessage()" id="sendBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor"
+             stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M22 2L11 13"></path>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+        </svg>
+      </button>
+      <button onclick="startRecognition()" id="voiceBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor"
+             stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"></path>
+          <path d="M19 10v2a7 7 0 11-14 0v-2"></path>
+          <path d="M12 19v4"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ========================= -->
+    <!-- 추가 기능 섹션들 (토글)  -->
+    <!-- ========================= -->
+
+    <!-- 변명 백과사전 섹션 -->
+    <div id="dictionarySection">
+      <div class="section-title">변명 백과사전</div>
+      <div class="input-group">
+        <input type="text" id="dictSearch" placeholder="검색어(내용)">
+        <button onclick="searchDictionary()">검색</button>
+        <select id="dictCategoryFilter">
+          <option value="">카테고리 선택</option>
+          <option value="지각">지각</option>
+          <option value="약속취소">약속취소</option>
+          <!-- 필요시 카테고리 추가 -->
+        </select>
+      </div>
+      <button onclick="fetchDictionary()">전체 조회</button>
+      <ul id="dictResult"></ul>
+      
+      <hr>
+      <div class="input-group">
+        <input type="text" id="dictCategory" placeholder="카테고리">
+        <input type="text" id="dictContent" placeholder="변명 내용">
+        <input type="number" id="dictRating" step="0.1" placeholder="평점">
+        <button onclick="addDictionary()">추가하기</button>
+      </div>
+    </div>
+
+    <!-- 변명 배틀 섹션 -->
+    <div id="battleSection">
+      <div class="section-title">변명 배틀</div>
+      <div>
+        <button onclick="startBattle()">배틀 시작</button>
+        <span id="battleInfo"></span>
+      </div>
+      <div class="input-group">
+        <input type="text" id="battleUserExcuse" placeholder="내 변명">
+        <button onclick="userTurn()">내 턴 보내기</button>
+      </div>
+      <div class="input-group">
+        <input type="text" id="battleBotPrompt" placeholder="'더 황당한 변명' 등 봇에게 줄 프롬프트">
+        <button onclick="botTurn()">봇 턴</button>
+      </div>
+      <button onclick="endBattle()">배틀 종료</button>
+      <div id="battleResult"></div>
+    </div>
+
+    <!-- 시간 제한 변명 섹션 -->
+    <div id="challengeSection">
+      <div class="section-title">15초 시간 제한 변명하기</div>
+      <div>
+        <button onclick="startChallenge()">도전 시작</button>
+        <span id="challengeTimer">15</span>초
+      </div>
+      <div class="input-group">
+        <input type="text" id="challengeUserExcuse" placeholder="15초 안에 변명 작성">
+        <button onclick="submitChallenge()">제출</button>
+      </div>
+      <div id="challengeResult"></div>
+    </div>
+  </div>
+
+  <script>
+    /*******************************************************
+     *                기존 챗봇 로직
+     *******************************************************/
+    var currentSessionId = "{{ current_session_id }}";
+    let recognition = null;
+
+    // 언어 상태 (기본 'ko')
+    let currentLanguage = 'ko';
+
+    // 텍스트 리소스 (한/영)
+    const textResources = {
+      ko: {
+        sidebarTitle: "변명 챗봇",
+        newChatBtn: "+ 새 채팅",
+        headerTitle: "변명 챗봇",
+        placeholder: "상황을 입력해 주세요",
+        emptyChat: "안녕하세요! 변명이 필요한 상황을 말씀해 주세요.",
+      },
+      en: {
+        sidebarTitle: "Excuse Chatbot",
+        newChatBtn: "+ New Chat",
+        headerTitle: "Excuse Chatbot",
+        placeholder: "Please enter a situation",
+        emptyChat: "Hello! Please describe the situation where you need an excuse.",
+      }
+    };
+
+    function updateUIByLanguage(lang) {
+      document.getElementById('sidebarTitle').textContent = textResources[lang].sidebarTitle;
+      document.getElementById('newChatBtn').textContent   = textResources[lang].newChatBtn;
+      document.getElementById('headerTitle').textContent  = textResources[lang].headerTitle;
+      document.getElementById('situationInput').placeholder = textResources[lang].placeholder;
+      const emptyChatEl = document.getElementById('emptyChat');
+      if (emptyChatEl) {
+        emptyChatEl.textContent = textResources[lang].emptyChat;
+      }
+    }
+
+    function setLanguage(lang) {
+      currentLanguage = lang;
+      updateUIByLanguage(lang);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const inputEl = document.getElementById('situationInput');
+      inputEl.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+      document.getElementById('chatBody').addEventListener('click', function() {
+        inputEl.focus();
+      });
+
+      // 기본은 한국어 상태로 시작
+      updateUIByLanguage('ko');
+    });
+    
+    function addMessage(sender, text) {
+      const emptyChatEl = document.getElementById('emptyChat');
+      if (emptyChatEl) emptyChatEl.remove();
+      const msgEl = document.createElement('div');
+      msgEl.classList.add('message', sender);
+      const bubbleEl = document.createElement('div');
+      bubbleEl.classList.add('bubble');
+      bubbleEl.textContent = text;
+      msgEl.appendChild(bubbleEl);
+      document.getElementById('chatBody').appendChild(msgEl);
+      const chatBody = document.getElementById('chatBody');
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+    
+    function sendMessage() {
+      const inputEl = document.getElementById('situationInput');
+      let text = inputEl.value.trim();
+      if (!text) return;
+      addMessage('user', text);
+      inputEl.value = '';
+      fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ situation: text, session_id: currentSessionId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        addMessage('bot', data.excuse);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        addMessage('bot', '오류가 발생했습니다.');
+      });
+    }
+    
+    function startRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+        return;
+      }
+      if (recognition) recognition.stop();
+      recognition = new SpeechRecognition();
+      recognition.lang = currentLanguage === 'ko' ? "ko-KR" : "en-US";
+      recognition.interimResults = false;
+      recognition.continuous = false;
+      let finalTranscript = "";
+      recognition.onresult = function(event) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+      };
+      recognition.onend = function() {
+        document.getElementById("situationInput").value = finalTranscript;
+        recognition = null;
+      };
+      recognition.onerror = function(event) {
+        console.error("음성 인식 오류:", event.error);
+      };
+      recognition.start();
+    }
+
+    /*******************************************************
+     *                섹션 토글 (간단)
+     *******************************************************/
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (!section) return;
+      const isVisible = (section.style.display === 'block');
+      section.style.display = isVisible ? 'none' : 'block';
+    }
+
+    /*******************************************************
+     *     (4) 변명 백과사전 (Dictionary) 기능
+     *******************************************************/
+    function fetchDictionary() {
+      // 전체 목록 조회
+      fetch('/dictionary')
+        .then(res => res.json())
+        .then(data => {
+          renderDictionary(data);
+        });
+    }
+
+    function searchDictionary() {
+      const search = document.getElementById('dictSearch').value.trim();
+      const category = document.getElementById('dictCategoryFilter').value;
+      let url = '/dictionary?';
+      if (category) url += `category=${category}&`;
+      if (search) url += `search=${search}&`;
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          renderDictionary(data);
+        });
+    }
+
+    function renderDictionary(data) {
+      const listEl = document.getElementById('dictResult');
+      listEl.innerHTML = '';
+      data.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `[${item.category}] ${item.content} (★${item.rating})`;
+        listEl.appendChild(li);
+      });
+    }
+
+    function addDictionary() {
+      const category = document.getElementById('dictCategory').value.trim();
+      const content = document.getElementById('dictContent').value.trim();
+      const rating = parseFloat(document.getElementById('dictRating').value) || 0.0;
+
+      if (!category || !content) {
+        alert("카테고리와 변명 내용을 입력해주세요.");
+        return;
+      }
+      fetch('/dictionary/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, content, rating })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert("등록 완료! ID: " + data.id);
+        // 등록 후 목록 갱신
+        fetchDictionary();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("에러 발생");
+      });
+    }
+
+    /*******************************************************
+     *     (5) 변명 배틀 (Battle) 기능
+     *******************************************************/
+    let currentBattleId = null;
+
+    function startBattle() {
+      fetch('/battle/new', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          currentBattleId = data.battle_id;
+          document.getElementById('battleInfo').textContent = `배틀ID: ${currentBattleId}`;
+          document.getElementById('battleResult').textContent = '';
+        });
+    }
+
+    function userTurn() {
+      if (!currentBattleId) {
+        alert("배틀을 먼저 시작하세요.");
+        return;
+      }
+      const excuse = document.getElementById('battleUserExcuse').value.trim();
+      if (!excuse) return;
+      fetch(`/battle/${currentBattleId}/turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player: 'user', excuse })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('battleResult').textContent = 
+          `유저 점수: ${data.user_score}, 봇 점수: ${data.bot_score}`;
+      });
+    }
+
+    function botTurn() {
+      if (!currentBattleId) {
+        alert("배틀을 먼저 시작하세요.");
+        return;
+      }
+      const prompt = document.getElementById('battleBotPrompt').value.trim() || "더 황당한 변명";
+      // 봇 턴1: prompt 로 generate_excuse
+      fetch(`/battle/${currentBattleId}/bot_turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const { bot_excuse, user_score, bot_score } = data;
+        document.getElementById('battleResult').textContent =
+          `봇 변명: ${bot_excuse}\n유저점수:${user_score}, 봇점수:${bot_score}`;
+      });
+    }
+
+    function endBattle() {
+      if (!currentBattleId) {
+        alert("배틀을 먼저 시작하세요.");
+        return;
+      }
+      fetch(`/battle/${currentBattleId}/end`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('battleResult').textContent =
+            `결과: ${data.result} (유저:${data.user_score} / 봇:${data.bot_score})`;
+        });
+    }
+
+    /*******************************************************
+     *     (6) 시간 제한 변명 (Challenge) 기능
+     *******************************************************/
+    let challengeTimerId = null;
+    let challengeTimeLeft = 15;
+
+    function startChallenge() {
+      challengeTimeLeft = 15;
+      document.getElementById('challengeTimer').textContent = challengeTimeLeft.toString();
+      document.getElementById('challengeResult').textContent = '';
+      // 타이머
+      if (challengeTimerId) clearInterval(challengeTimerId);
+      challengeTimerId = setInterval(() => {
+        challengeTimeLeft--;
+        document.getElementById('challengeTimer').textContent = challengeTimeLeft.toString();
+        if (challengeTimeLeft <= 0) {
+          clearInterval(challengeTimerId);
+          challengeTimerId = null;
+          // 자동 제출? 혹은 그냥 시간종료
+          alert("시간 종료!");
+        }
+      }, 1000);
+    }
+
+    function submitChallenge() {
+      if (!challengeTimerId) {
+        alert("도전을 시작하세요!");
+        return;
+      }
+      const user_excuse = document.getElementById('challengeUserExcuse').value.trim();
+      fetch('/challenge/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_excuse, time_left: challengeTimeLeft })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const { user_excuse, user_score, bot_excuse, bot_score, result } = data;
+        document.getElementById('challengeResult').textContent =
+          `사용자 변명: ${user_excuse} (점수:${user_score})\n봇 변명: ${bot_excuse} (점수:${bot_score})\n결과: ${result}`;
+        // 타이머 정지
+        clearInterval(challengeTimerId);
+        challengeTimerId = null;
+      });
+    }
+
+  </script>
+</body>
+</html>

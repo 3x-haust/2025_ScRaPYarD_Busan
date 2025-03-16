@@ -1,0 +1,184 @@
+/* static/css/styles.css */
+
+/* 전체 리셋/기본 */
+* {
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Pretendard', sans-serif, Arial, sans-serif;
+    background-color: #1c1b1b;
+    color: #fff;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* 헤더, 푸터 */
+  .main-header, .main-footer {
+    background-color: #2c2c2c;
+    padding: 10px 20px;
+  }
+  .main-header .nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .main-header .logo {
+    color: #fff;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 18px;
+  }
+  .top-nav a {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 15px;
+  }
+  .top-nav a:hover {
+    text-decoration: underline;
+  }
+  .main-footer {
+    text-align: center;
+    margin-top: auto;
+    color: #aaa;
+    font-size: 14px;
+  }
+  
+  /* 메인 컨텐츠 랩 */
+  .content-area {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  /* 챗봇 UI */
+  .chatbot-container {
+    display: flex;
+    gap: 16px;
+  }
+  .sidebar {
+    width: 200px;
+    background-color: #2c2c2c;
+    padding: 10px;
+  }
+  .new-chat-btn {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #343541;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    text-align: left;
+  }
+  .session-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .session-item {
+    background: #343541;
+    margin-bottom: 6px;
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .session-item:hover {
+    background: #4e505a;
+  }
+  .chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .messages {
+    flex: 1;
+    background-color: #1c1b1b;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  .message {
+    margin-bottom: 10px;
+    display: flex;
+  }
+  .message.user {
+    justify-content: flex-end;
+  }
+  .message.bot {
+    justify-content: flex-start;
+  }
+  .bubble {
+    background-color: #444654;
+    padding: 8px 12px;
+    border-radius: 6px;
+    max-width: 60%;
+    white-space: pre-wrap;
+    line-height: 1.4;
+  }
+  .empty-chat {
+    text-align: center;
+    margin-top: 30px;
+    color: #aaa;
+  }
+  .input-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .input-bar input {
+    flex: 1;
+    border-radius: 4px;
+    border: none;
+    padding: 8px;
+    background: #333;
+    color: #fff;
+  }
+  .input-bar button {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  /* dictionary */
+  .dictionary-container {
+    max-width: 600px;
+    margin: auto;
+  }
+  .dict-search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .dict-list {
+    margin-bottom: 20px;
+  }
+  .dict-add-form input {
+    margin-right: 8px;
+    padding: 6px;
+    border-radius: 4px;
+    border: none;
+  }
+  
+  /* battle */
+  .battle-container {
+    max-width: 500px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* challenge */
+  .challenge-container {
+    max-width: 500px;
+    margin: auto;
+    text-align: center;
+  }
+  
